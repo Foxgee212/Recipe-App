@@ -1,62 +1,81 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Routes, Route, Link } from "react-router-dom";
 import axios from "axios";
 import RecipeCard from "./RecipeCard";
+import Favorites from "./Favorites";
 
 export default function App() {
   const [search, setSearch] = useState("");
   const [recipes, setRecipes] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const fetchRecipes = async () => {
-    if (!search) return;
-    setLoading(true);
+  const fetchRecipes = async (query) => {
     try {
       const res = await axios.get(
-        `https://www.themealdb.com/api/json/v1/1/search.php?s=${search}`
+        `https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`
       );
       setRecipes(res.data.meals || []);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching recipes:", error);
     }
-    setLoading(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSearch = (e) => {
     e.preventDefault();
-    fetchRecipes();
+    fetchRecipes(search);
   };
+
+  useEffect(() => {
+    fetchRecipes("chicken");
+  }, []);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4 text-center">🍲 Recipe Finder</h1>
+    <div>
+      {/* Navigation */}
+      <nav className="bg-gray-800 text-white p-4 flex justify-between">
+        <Link to="/" className="font-bold">🍽 Recipe Finder</Link>
+        <Link to="/favorites" className="hover:underline">⭐ Favorites</Link>
+      </nav>
 
-      {/* Search Form */}
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-6">
-        <input
-          type="text"
-          placeholder="Search for a recipe..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border p-2 flex-1 rounded"
+      <Routes>
+        {/* Home Page */}
+        <Route
+          path="/"
+          element={
+            <div className="max-w-4xl mx-auto p-4">
+              <form onSubmit={handleSearch} className="flex gap-2 mb-6">
+                <input
+                  type="text"
+                  placeholder="Search for recipes..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="flex-1 p-2 border rounded"
+                />
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Search
+                </button>
+              </form>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {recipes.length > 0 ? (
+                  recipes.map((recipe) => (
+                    <RecipeCard key={recipe.idMeal} recipe={recipe} />
+                  ))
+                ) : (
+                  <p className="col-span-full text-center text-gray-500">
+                    No recipes found.
+                  </p>
+                )}
+              </div>
+            </div>
+          }
         />
-        <button type="submit" className="bg-green-500 text-white px-4 rounded">
-          Search
-        </button>
-      </form>
 
-      {/* Loading State */}
-      {loading && <p className="text-center">Loading recipes...</p>}
-
-      {/* Recipes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {recipes.map((recipe) => (
-          <RecipeCard key={recipe.idMeal} recipe={recipe} />
-        ))}
-      </div>
-
-      {!loading && recipes.length === 0 && (
-        <p className="text-center">No recipes found. Try another search!</p>
-      )}
+        {/* Favorites Page */}
+        <Route path="/favorites" element={<Favorites />} />
+      </Routes>
     </div>
   );
 }
